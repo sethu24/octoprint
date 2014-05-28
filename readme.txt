@@ -3,7 +3,7 @@ Contributors: christian.loelkes
 Plugin Name: Octoprint for WP
 Plugin URI: http://wordpress.org/extend/plugins/octoprint/
 Description: Octoprint plugin for Wordpress
-Version: 0.1
+Version: 0.2
 Stable tag: trunk
 Tags:
 Requires at least: 3.0
@@ -14,7 +14,7 @@ License: GPLv2
 
 == Description ==
 
-This plugin polls the Octoprint API and displays the status of your 3D printer in a widget or on a page with a shortcode (nor working yet).
+This plugin polls the Octoprint API and displays the status of your 3D printer in a widget or on a page with a shortcode.
 
 == Installation ==
 
@@ -27,6 +27,10 @@ If Octoprint is not running on the same server than Wordpress you will need to m
 == Screenshots ==
 
 == Changelog ==
+
+= 0.2 =
+* Shortcode [octorprint] is now working.
+* Code optimization.
 
 = 0.1 =
 * First working version. Only displays the printer's state.

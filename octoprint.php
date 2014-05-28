@@ -5,7 +5,7 @@ Contributors: christian.loelkes
 Plugin Name: Octoprint for WP
 Plugin URI: http://wordpress.org/extend/plugins/octoprint/
 Description: Octoprint plugin for Wordpress
-Version: 0.1
+Version: 0.2
 Stable tag: trunk
 Tags:
 Requires at least: 3.0
@@ -13,6 +13,8 @@ Tested up to: 3.9
 Author: Christian Lölkes
 Author URI: http://www.db4cl.com
 License: GPLv2
+
+Copyright 2014 Christian Loelkes  (email : christian.loelkes@gmail.com)
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License, version 2, as 
@@ -45,6 +47,10 @@ if(!class_exists('OctoprintPlugin')) {
 					'url' => get_option('octoprint_url'),
 					'key' => get_option('octoprint_api_key')
 				), $atts ) );
+
+				$octoprint = new Octoprint($url, $key);
+				return $octoprint->render();
+		
 			}
 			// Function for the shortcode
 			add_shortcode( 'octoprint', 'insert_octoprint' );
@@ -65,32 +71,43 @@ if(!class_exists('OctoprintPlugin')) {
 // Octoprint class starting here
 // -----------------------------
 
-class Octoprint {
+if(!class_exists('Octoprint')) {
+	class Octoprint {
 	
-	public $data;
+		public $data;
 
-	public function __construct( $url, $key ) {
-		if( empty($url) ) $url = get_option('octoprint_url');
-		if( empty($key) ) $key = get_option('octoprint_api_key');
-		$this->data = $this->poll( $url, $key );
-	}
+		public function __construct( $url, $key ) {
+			if( empty($url) ) $url = get_option('octoprint_url');
+			if( empty($key) ) $key = get_option('octoprint_api_key');
+			$this->data = $this->poll( $url, $key );
+		}
 
-	public function poll( $url, $key ) {
-		$json = file_get_contents( $url.'/api/state?apikey='.$key );
-		$obj = json_decode( $json );
-		return $obj;
-	}
+		public function poll( $url, $key ) {
+			$json = file_get_contents( $url.'/api/state?apikey='.$key );
+			$obj = json_decode( $json );
+			return $obj;
+		}
 
-	public function getStateString() {
-		return $this->data->state->stateString;
-	}
+		public function getStateString() {
+			return $this->data->state->stateString;
+		}
 
-	public function getProgress() {
-		return round($this->data->progress->completion,2);
-	}
+		public function getProgress() {
+			return round($this->data->progress->completion,2);
+		}
 
-	public function getTemp($tool) {
-		return $this->data->temperatures->$tool->actual;
+		public function getTemp($tool) {
+			return $this->data->temperatures->$tool->actual;
+		}
+
+
+		public function render() {
+			$output = 'State: '.$this->getStateString().'<br />';
+			$output .= 'Head temp: '.$this->getTemp('tool0').' °C<br />';
+			$output .= 'Progress: '.$this->getProgress().' %<br />';
+			return $output;
+		}
+
 	}
 }
 
@@ -145,9 +162,7 @@ class OctoprintWidget extends WP_Widget {
 		if (!empty($title)) {
 			echo $before_title . $title . $after_title;;
 			echo get_option('octoprint_widget_text').'<hr />';
-			echo 'State: '.$octoprint->getStateString().'<br />';
-			echo 'Head temp: '.$octoprint->getTemp('tool0').' °C<br />';
-			echo 'Progress: '.$octoprint->getProgress().' %<br />';
+			echo $octoprint->render();
 			echo $after_widget;
 		}
 	}
