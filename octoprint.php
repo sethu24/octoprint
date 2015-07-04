@@ -27,7 +27,7 @@ require_once(sprintf("%s/settings.php", dirname(__FILE__)));
 if(!class_exists('Octoprint')) {
 	class Octoprint {
 
-        public $octoprint_Settings;
+        public $Settings;
 
 		public function __construct() {
 
@@ -42,7 +42,7 @@ if(!class_exists('Octoprint')) {
 			add_shortcode( 'octoprint', array(&$this, 'insert_octoprint') );
 
             // Add the settings to the plugin
-            $this->octoprint_Settings = new octoprintSettings();
+            $this->Settings = new octoprintSettings();
 
             $plugin = plugin_basename( __FILE__ );
             add_filter( "plugin_action_links_$plugin", array( &$this, 'octoprintWidget_settings_link') );
