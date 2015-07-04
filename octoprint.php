@@ -1,65 +1,141 @@
 <?php
 
 /*
+
 Contributors: christian.loelkes
 Plugin Name: Octoprint for WP
 Plugin URI: http://wordpress.org/extend/plugins/octoprint/
 Description: Octoprint plugin for Wordpress
-Version: 0.2
-Stable tag: trunk
-Tags:
+Version: 1.0
+Stable tag: 0.2
+Donate link: https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=VNRJ5FSUV3C6L
+Tags: stl, 3d, shortcode, 3d printing, octoprint
 Requires at least: 3.0
-Tested up to: 3.9
+Tested up to: 4.1.1
 Author: Christian Lölkes
 Author URI: http://www.db4cl.com
-License: GPLv2
-
-This program is free software; you can redistribute it and/or modify
-it under the terms of the GNU General Public License, version 2, as 
-published by the Free Software Foundation.
-
-This program is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with this program; if not, write to the Free Software
-Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
+License: CC Attribution-NoDerivatives 4.0 International
 
 */
+
+require_once(sprintf("%s/settings.php", dirname(__FILE__)));
 
 // --------------------------
 // Plugin class starting here
 // --------------------------
 
-if(!class_exists('OctoprintPlugin')) {
-	class OctoprintPlugin {
+if(!class_exists('Octoprint')) {
+	class Octoprint {
+
+        public $octoprint_Settings;
+
 		public function __construct() {
-        		// Initialize Settings
-            		require_once(sprintf("%s/settings.php", dirname(__FILE__)));
-			$octoprintSettings = new octoprintSettings();
 
-			function insert_octoprint() {
-				extract( shortcode_atts( array(
-					'url' => get_option('octoprint_url'),
-					'key' => get_option('octoprint_api_key')
-				), $atts ) );
+            // Set hooks for (de)activation
+            register_activation_hook( 	__FILE__, array( &$this, 'activate' ));
+            register_deactivation_hook(	__FILE__, array( &$this, 'deactivate' ));
 
-				$octoprint = new Octoprint($url, $key);
-				return $octoprint->render();
-		
-			}
-			// Function for the shortcode
-			add_shortcode( 'octoprint', 'insert_octoprint' );
+            // Add the widget
+            add_action( 'widgets_init', create_function( '', 'return register_widget( "OctoprintWidget" );') );
+
+			// Enable the shortcode
+			add_shortcode( 'octoprint', array(&$this, 'insert_octoprint') );
+
+            // Add the settings to the plugin
+            $this->octoprint_Settings = new octoprintSettings();
+
+            $plugin = plugin_basename( __FILE__ );
+            add_filter( "plugin_action_links_$plugin", array( &$this, 'octoprintWidget_settings_link') );
 
 		} // END public function __construct
 
-		public static function activate() {} // END public static function activate
-		public static function deactivate() {} // END public static function deactivate
+        public function insert_octoprint() {
+            extract( shortcode_atts( array(
+                'url' => get_option('octoprint_url'),
+                'key' => get_option('octoprint_api_key')
+            ), $atts ) );
+
+            $octoprint = new Octoprint_API($url, $key);
+            return $octoprint->render();
+
+        }
+
+        public function octoprintWidget_settings_link( $links ) {
+            $settings_link = '<a href="options-general.php?page=octoprint">Settings</a>';
+            array_unshift( $links, $settings_link );
+            return $links;
+        }
+
+        public function activate() {
+            $settings = $this->Settings->getSettingsArray();
+            foreach($settings as $setting){
+                add_option($this->Settings->getSettingPrefix().$setting['name'], $setting['default']);
+            }
+        }
+        public function deactivate() {
+            if( get_option($this->Settings->getSettingPrefix().'delete_settings') ) {
+                $settings = $this->Settings->getSettingsArray();
+                foreach ($settings as $setting) {
+                    delete_option($this->Settings->getSettingPrefix() . $setting['name']);
+                }
+            }
+        }
 
 	} 
-} 
+}
+
+if(!class_exists('Octoprint_Post')) {
+    class Octoprint_Post extends Octoprint{
+
+        protected $args = array(
+            'label'               => 'octoprint_client',
+            'description'         => 'Octoprint client',
+            'labels'              => '',
+            'supports'            => array( 'title', 'custom-fields', ),
+            'taxonomies'          => array( 'category', 'post_tag' ),
+            'hierarchical'        => false,
+            'public'              => true,
+            'show_ui'             => true,
+            'show_in_menu'        => true,
+            'menu_position'       => 5,
+            'show_in_admin_bar'   => true,
+            'show_in_nav_menus'   => true,
+            'can_export'          => true,
+            'has_archive'         => true,
+            'exclude_from_search' => false,
+            'publicly_queryable'  => true,
+            'capability_type'     => 'page',
+        );
+
+        protected $labels = array(
+            'name'                => 'Octoprint clients',
+            'singular_name'       => 'Octoprint client',
+            'menu_name'           => 'Octoprint client',
+            'name_admin_bar'      => 'Octoprint clients',
+            'parent_item_colon'   => 'Parent Item:',
+            'all_items'           => 'All clients',
+            'add_new_item'        => 'Add New clients',
+            'add_new'             => 'Add New',
+            'new_item'            => 'New client',
+            'edit_item'           => 'Edit client',
+            'update_item'         => 'Update client',
+            'view_item'           => 'View client',
+            'search_items'        => 'Search client',
+            'not_found'           => 'Not found',
+            'not_found_in_trash'  => 'Not found in Trash'
+        );
+
+        public function octoprint_post_type() {
+            $this->args['labels'] = $this->labels;
+            register_post_type( 'octoprint_client', $this->args );
+        }
+
+        public function __construct() {
+            // Hook into the 'init' action
+            add_action('init', array( &$this, 'octoprint_post_type'), 0);
+        }
+    }
+}
 
 // ------------------------
 // Plugin class ending here
@@ -69,8 +145,8 @@ if(!class_exists('OctoprintPlugin')) {
 // Octoprint class starting here
 // -----------------------------
 
-if(!class_exists('Octoprint')) {
-	class Octoprint {
+if(!class_exists('Octoprint_API')) {
+	class Octoprint_API extends Octoprint{
 	
 		public $data;
 
@@ -97,7 +173,6 @@ if(!class_exists('Octoprint')) {
 		public function getTemp($tool) {
 			return $this->data->temperatures->$tool->actual;
 		}
-
 
 		public function render() {
 			$output = 'State: '.$this->getStateString().'<br />';
@@ -170,26 +245,6 @@ class OctoprintWidget extends WP_Widget {
 // Widget class ending here
 // ------------------------
 
-if( class_exists( 'octoprintPlugin' )) {
-	// Installation and uninstallation hooks
-	register_activation_hook( __FILE__, array('octoprintPlugin', 'activate' ));
-	register_deactivation_hook( __FILE__, array('octoprintPlugin', 'deactivate' ));
 
-	// instantiate the plugin class
-	$octoprintPlugin = new OctoprintPlugin();
+$octoprintPlugin = new Octoprint();
 
-    // Add a link to the settings page onto the plugin page
-    if( isset( $octoprintPlugin )) {
-	// Add the widget
-	add_action( 'widgets_init', create_function( '', 'return register_widget( "OctoprintWidget" );') );
-
-	// Add the settings link to the plugins page
-        function octoprintWidget_settings_link( $links ) {
-            $settings_link = '<a href="options-general.php?page=octoprint">Settings</a>';
-            array_unshift( $links, $settings_link );
-            return $links;
-        }
-        $plugin = plugin_basename( __FILE__ );
-        add_filter( "plugin_action_links_$plugin", 'octoprintWidget_settings_link' );
-    }
-}

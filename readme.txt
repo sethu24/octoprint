@@ -3,14 +3,15 @@ Contributors: christian.loelkes
 Plugin Name: Octoprint for WP
 Plugin URI: http://wordpress.org/extend/plugins/octoprint/
 Description: Octoprint plugin for Wordpress
-Version: 0.2
-Stable tag: trunk
-Tags:
+Version: 1.0
+Stable tag: 0.2
+Donate link: https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=VNRJ5FSUV3C6L
+Tags: stl, 3d, shortcode, 3d printing, octoprint
 Requires at least: 3.0
-Tested up to: 3.9
+Tested up to: 4.1.1
 Author: Christian Lölkes
 Author URI: http://www.db4cl.com
-License: GPLv2
+License: CC Attribution-NoDerivatives 4.0 International
 
 == Description ==
 
@@ -27,6 +28,9 @@ If Octoprint is not running on the same server than Wordpress you will need to m
 == Screenshots ==
 
 == Changelog ==
+
+= 1.0 =
+* Almost complete rewrite fo the code.
 
 = 0.2 =
 * Shortcode [octorprint] is now working.
